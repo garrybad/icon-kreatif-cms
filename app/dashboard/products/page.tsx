@@ -14,13 +14,31 @@ import { Badge } from "@/components/ui/badge"
 import { X, Plus } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
+function createSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, "") // Remove special characters
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
+    .trim()
+}
+
 export default function AddProductPage() {
   const [name, setName] = useState("")
+  const [slug, setSlug] = useState("")
   const [category, setCategory] = useState("")
   const [price, setPrice] = useState("")
   const [description, setDescription] = useState("")
   const [features, setFeatures] = useState<string[]>([""])
-  const [specifications, setSpecifications] = useState<{ key: string; value: string }[]>([{ key: "", value: "" }])
+  const [specifications, setSpecifications] = useState<{ key: string; value: string }[]>(
+    [
+      { key: "Material", value: "" },
+      { key: "Size", value: "" },
+      { key: "Printing", value: "" },
+      { key: "Finish Options", value: "" },
+      { key: "Minimum Order", value: "" },
+    ]
+  )
   const [images, setImages] = useState<File[]>([])
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -38,6 +56,16 @@ export default function AddProductPage() {
   useEffect(() => {
     fetchCategories()
   }, [])
+
+  // Auto-generate slug when name changes
+  useEffect(() => {
+    if (name) {
+      const generatedSlug = createSlug(name)
+      setSlug(generatedSlug)
+    } else {
+      setSlug("")
+    }
+  }, [name])
 
   const fetchCategories = async () => {
     try {
@@ -94,13 +122,13 @@ export default function AddProductPage() {
     setFeatures(newFeatures)
   }
 
-  const addSpecification = () => {
-    setSpecifications([...specifications, { key: "", value: "" }])
-  }
+  // const addSpecification = () => {
+  //   setSpecifications([...specifications, { key: "", value: "" }])
+  // }
 
-  const removeSpecification = (index: number) => {
-    setSpecifications(specifications.filter((_, i) => i !== index))
-  }
+  // const removeSpecification = (index: number) => {
+  //   setSpecifications(specifications.filter((_, i) => i !== index))
+  // }
 
   const updateSpecification = (index: number, field: "key" | "value", value: string) => {
     const newSpecs = [...specifications]
@@ -161,6 +189,23 @@ export default function AddProductPage() {
     fileInput.click()
   }
 
+  const checkSlugUniqueness = async (slugToCheck: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.from("products").select("id").eq("slug", slugToCheck).single()
+
+      if (error && error.code === "PGRST116") {
+        // No product found with this slug, so it's unique
+        return true
+      }
+
+      // If we found a product with this slug, it's not unique
+      return false
+    } catch (error) {
+      console.error("Error checking slug uniqueness:", error)
+      return false
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -169,6 +214,14 @@ export default function AddProductPage() {
     // Validation
     if (images.length < 5) {
       setMessage("Please upload at least 5 product images.")
+      setIsLoading(false)
+      return
+    }
+
+    // Check if slug is unique
+    const isSlugUnique = await checkSlugUniqueness(slug)
+    if (!isSlugUnique) {
+      setMessage("Product with this name already exists. Please use a different name.")
       setIsLoading(false)
       return
     }
@@ -198,6 +251,7 @@ export default function AddProductPage() {
 
       const { error } = await supabase.from("products").insert({
         name,
+        slug,
         category,
         price: Number.parseFloat(price),
         description,
@@ -214,6 +268,7 @@ export default function AddProductPage() {
 
       // Reset form
       setName("")
+      setSlug("")
       setCategory("")
       setPrice("")
       setDescription("")
@@ -251,20 +306,32 @@ export default function AddProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
-                <Select value={category} onValueChange={setCategory} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="slug">Slug (Auto-generated)</Label>
+                <Input
+                  id="slug"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  placeholder="product-slug"
+                  className="bg-gray-50"
+                />
+                <p className="text-sm text-gray-500">This will be used in the URL: /products/{slug}</p>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select value={category} onValueChange={setCategory} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -319,28 +386,28 @@ export default function AddProductPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label>Specifications</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addSpecification}>
+                {/* <Button type="button" variant="outline" size="sm" onClick={addSpecification}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Specification
-                </Button>
+                </Button> */}
               </div>
               {specifications.map((spec, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
                     value={spec.key}
-                    onChange={(e) => updateSpecification(index, "key", e.target.value)}
                     placeholder="Specification name"
+                    readOnly
                   />
                   <Input
                     value={spec.value}
                     onChange={(e) => updateSpecification(index, "value", e.target.value)}
                     placeholder="Specification value"
                   />
-                  {specifications.length > 1 && (
+                  {/* {specifications.length > 1 && (
                     <Button type="button" variant="outline" size="icon" onClick={() => removeSpecification(index)}>
                       <X className="h-4 w-4" />
                     </Button>
-                  )}
+                  )} */}
                 </div>
               ))}
             </div>

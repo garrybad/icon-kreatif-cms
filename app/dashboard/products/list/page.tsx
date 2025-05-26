@@ -1,5 +1,5 @@
 "use client"
-import { Package } from "lucide-react" // Import Package component
+import { Package, Eye } from "lucide-react"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,17 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { X, Plus, Edit, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
+import { EditProductDialog } from "@/components/dialog-edit-product"
+import { DeleteProductDialog } from "@/components/dialog-delete-product"
+
+function createSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim()
+}
 
 interface Product {
   id: number
@@ -25,6 +36,7 @@ interface Product {
   specifications: Record<string, string>
   images: string[]
   created_at: string
+  slug: string
 }
 
 export default function ProductListPage() {
@@ -36,9 +48,13 @@ export default function ProductListPage() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [message, setMessage] = useState("")
   const [categories, setCategories] = useState<string[]>([])
+  const [editImages, setEditImages] = useState<string[]>([])
+  const [newImages, setNewImages] = useState<File[]>([])
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([])
 
   // Edit form states
   const [editName, setEditName] = useState("")
+  const [editSlug, setEditSlug] = useState("")
   const [editCategory, setEditCategory] = useState("")
   const [editPrice, setEditPrice] = useState("")
   const [editDescription, setEditDescription] = useState("")
@@ -49,6 +65,13 @@ export default function ProductListPage() {
     fetchProducts()
     fetchCategories()
   }, [])
+
+  useEffect(() => {
+    return () => {
+      // Cleanup preview URLs
+      newImagePreviews.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [newImagePreviews])
 
   const fetchProducts = async () => {
     try {
@@ -109,6 +132,7 @@ export default function ProductListPage() {
   const handleEdit = (product: Product) => {
     setEditingProduct(product)
     setEditName(product.name)
+    setEditSlug(product.slug || createSlug(product.name))
     setEditCategory(product.category)
     setEditPrice(product.price.toString())
     setEditDescription(product.description || "")
@@ -116,101 +140,44 @@ export default function ProductListPage() {
     setEditSpecifications(
       Object.entries(product.specifications || {}).map(([key, value]) => ({ key, value })) || [{ key: "", value: "" }],
     )
+    setEditImages(product.images || [])
+    setNewImages([])
+    setNewImagePreviews([])
     setIsEditDialogOpen(true)
   }
+
+  useEffect(() => {
+    if (editName) {
+      const generatedSlug = createSlug(editName)
+      setEditSlug(generatedSlug)
+    }
+  }, [editName])
 
   const handleDelete = (product: Product) => {
     setProductToDelete(product)
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDelete = async () => {
-    if (!productToDelete) return
-
-    try {
-      const { error } = await supabase.from("products").delete().eq("id", productToDelete.id)
-
-      if (error) {
-        throw error
-      }
-
-      setMessage("Product deleted successfully!")
-      setProducts(products.filter((p) => p.id !== productToDelete.id))
-      setIsDeleteDialogOpen(false)
-      setProductToDelete(null)
-    } catch (error) {
-      console.error("Error deleting product:", error)
-      setMessage("Error deleting product. Please try again.")
-    }
+  const handleEditSuccess = (updatedProduct: Product) => {
+    setMessage("Product updated successfully!")
+    fetchProducts() // Refresh the list
+    setTimeout(() => setMessage(""), 3000)
   }
 
-  const handleSaveEdit = async () => {
-    if (!editingProduct) return
-
-    try {
-      const validFeatures = editFeatures.filter((feature) => feature.trim() !== "")
-      const validSpecs = editSpecifications.filter((spec) => spec.key.trim() !== "" && spec.value.trim() !== "")
-      const specsObject = validSpecs.reduce(
-        (acc, spec) => {
-          acc[spec.key] = spec.value
-          return acc
-        },
-        {} as Record<string, string>,
-      )
-
-      const { error } = await supabase
-        .from("products")
-        .update({
-          name: editName,
-          category: editCategory,
-          price: Number.parseFloat(editPrice),
-          description: editDescription,
-          features: validFeatures,
-          specifications: specsObject,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", editingProduct.id)
-
-      if (error) {
-        throw error
-      }
-
-      setMessage("Product updated successfully!")
-      setIsEditDialogOpen(false)
-      setEditingProduct(null)
-      fetchProducts() // Refresh the list
-    } catch (error) {
-      console.error("Error updating product:", error)
-      setMessage("Error updating product. Please try again.")
-    }
+  const handleEditError = (error: string) => {
+    setMessage(error)
+    setTimeout(() => setMessage(""), 5000)
   }
 
-  const addEditFeature = () => {
-    setEditFeatures([...editFeatures, ""])
+  const handleDeleteSuccess = (deletedProduct: Product) => {
+    setMessage("Product deleted successfully!")
+    setProducts(products.filter((p) => p.id !== deletedProduct.id))
+    setTimeout(() => setMessage(""), 3000)
   }
 
-  const removeEditFeature = (index: number) => {
-    setEditFeatures(editFeatures.filter((_, i) => i !== index))
-  }
-
-  const updateEditFeature = (index: number, value: string) => {
-    const newFeatures = [...editFeatures]
-    newFeatures[index] = value
-    setEditFeatures(newFeatures)
-  }
-
-  const addEditSpecification = () => {
-    setEditSpecifications([...editSpecifications, { key: "", value: "" }])
-  }
-
-  const removeEditSpecification = (index: number) => {
-    setEditSpecifications(editSpecifications.filter((_, i) => i !== index))
-  }
-
-  const updateEditSpecification = (index: number, field: "key" | "value", value: string) => {
-    const newSpecs = [...editSpecifications]
-    newSpecs[index][field] = value
-    setEditSpecifications(newSpecs)
+  const handleDeleteError = (error: string) => {
+    setMessage(error)
+    setTimeout(() => setMessage(""), 5000)
   }
 
   const formatPrice = (price: number) => {
@@ -222,8 +189,8 @@ export default function ProductListPage() {
 
   if (isLoading) {
     return (
-      <div className="px-4 py-6">
-        <div className="max-w-6xl mx-auto">
+      <div>
+        <div className="mx-auto">
           <div className="text-center">Loading products...</div>
         </div>
       </div>
@@ -231,8 +198,8 @@ export default function ProductListPage() {
   }
 
   return (
-    <div className="px-4 py-6">
-      <div className="max-w-6xl mx-auto">
+    <div>
+      <div className="mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">Product Management</h1>
@@ -296,9 +263,14 @@ export default function ProductListPage() {
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
 
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(product)} className="flex-1">
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
+                    <Link href={`/dashboard/products/${product.slug}`} className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </Link>
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(product)}>
+                      <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
@@ -316,155 +288,24 @@ export default function ProductListPage() {
         )}
 
         {/* Edit Product Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Product</DialogTitle>
-              <DialogDescription>Update the product information</DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">Product Name *</Label>
-                  <Input
-                    id="edit-name"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Enter product name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-category">Category *</Label>
-                  <Select value={editCategory} onValueChange={setEditCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-price">Price (IDR) *</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  value={editPrice}
-                  onChange={(e) => setEditPrice(e.target.value)}
-                  placeholder="0"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="Enter product description"
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Features</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addEditFeature}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Feature
-                  </Button>
-                </div>
-                {editFeatures.map((feature, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={feature}
-                      onChange={(e) => updateEditFeature(index, e.target.value)}
-                      placeholder="Enter feature"
-                    />
-                    {editFeatures.length > 1 && (
-                      <Button type="button" variant="outline" size="icon" onClick={() => removeEditFeature(index)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Specifications</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addEditSpecification}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Specification
-                  </Button>
-                </div>
-                {editSpecifications.map((spec, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={spec.key}
-                      onChange={(e) => updateEditSpecification(index, "key", e.target.value)}
-                      placeholder="Specification name"
-                    />
-                    <Input
-                      value={spec.value}
-                      onChange={(e) => updateEditSpecification(index, "value", e.target.value)}
-                      placeholder="Specification value"
-                    />
-                    {editSpecifications.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => removeEditSpecification(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button onClick={handleSaveEdit} className="flex-1">
-                  Save Changes
-                </Button>
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="flex-1">
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <EditProductDialog
+          product={editingProduct}
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          onSuccess={handleEditSuccess}
+          onError={handleEditError}
+          categories={categories}
+        />
 
         {/* Delete Confirmation Dialog */}
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Product</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete "{productToDelete?.name}"? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex gap-4 pt-4">
-              <Button variant="destructive" onClick={confirmDelete} className="flex-1">
-                Delete Product
-              </Button>
-              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="flex-1">
-                Cancel
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <DeleteProductDialog
+          product={productToDelete}
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onSuccess={handleDeleteSuccess}
+          onError={handleDeleteError}
+        />
+
       </div>
     </div>
   )

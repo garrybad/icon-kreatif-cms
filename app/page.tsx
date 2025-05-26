@@ -75,7 +75,7 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+          {/* <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
               <strong>Default Credentials:</strong>
               <br />
@@ -83,7 +83,7 @@ export default function LoginPage() {
               <br />
               Password: iconkreatif2024
             </p>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>
