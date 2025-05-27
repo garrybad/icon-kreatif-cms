@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Printer, Phone, Package, Settings, LogOut, Tag } from "lucide-react";
+import { Menu, Printer, Phone, Package, Settings, LogOut, Tag, UserCog } from "lucide-react";
 import { Dela_Gothic_One } from "next/font/google";
 import { useRouter } from "next/navigation";
 
@@ -42,7 +42,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-white">
       <div className="container flex h-16 items-center px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2 mr-6">
-          <Printer className="h-6 w-6 text-purple-600" />
+          <UserCog className="h-6 w-6" />
           <span className={`text-xl font-bold ${delaGothicOne.className}`}>
             ICON KREATIF CMS
           </span>
@@ -97,7 +97,7 @@ export default function Navbar() {
                 className="flex items-center gap-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <Printer className="h-6 w-6 text-purple-600" />
+                <UserCog className="h-6 w-6" />
                 <span
                   className={`text-lg font-bold ${delaGothicOne.className}`}
                 >

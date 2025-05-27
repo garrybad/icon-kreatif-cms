@@ -8,7 +8,10 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Icon Kreatif CMS",
   description: "Content Management System for Icon Kreatif",
-    generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: {
+    icon: '/icon.png', // /public path
+  },
 }
 
 export default function RootLayout({
