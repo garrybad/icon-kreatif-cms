@@ -10,6 +10,14 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DEFAULT_CREDENTIALS } from "@/lib/auth"
+import { Dela_Gothic_One } from 'next/font/google'
+
+const delaGothicOne = Dela_Gothic_One({
+    subsets: ['latin'], // required
+    // display: 'swap', // optional
+    weight: '400',
+    variable: '--font-dela-gothic-one', // optional: for using as CSS variable
+})
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -39,7 +47,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Icon Kreatif CMS</CardTitle>
+          <CardTitle className="text-2xl font-bold"> <span className={delaGothicOne.className}>ICON KREATIF</span> CMS</CardTitle>
           <CardDescription>Sign in to manage your content</CardDescription>
         </CardHeader>
         <CardContent>

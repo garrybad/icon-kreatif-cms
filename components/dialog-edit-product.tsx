@@ -324,6 +324,7 @@ export function EditProductDialog({
                   value={spec.key}
                   onChange={(e) => updateEditSpecification(index, "key", e.target.value)}
                   placeholder="Specification name"
+                  readOnly
                 />
                 <Input
                   value={spec.value}

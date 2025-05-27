@@ -33,7 +33,7 @@ export async function GET() {
       name: product.name,
       slug: product.slug || createSlug(product.name),
       category: product.category,
-      price: formatPrice(product.price),
+      price: product.price,
       description: product.description || "",
       features: product.features || [],
       specifications: product.specifications || {},

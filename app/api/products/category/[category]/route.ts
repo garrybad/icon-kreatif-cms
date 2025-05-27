@@ -40,7 +40,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ cate
       name: product.name,
       slug: product.slug || createSlug(product.name),
       category: product.category,
-      price: formatPrice(product.price),
+      price: product.price,
       description: product.description || "",
       features: product.features || [],
       specifications: product.specifications || {},

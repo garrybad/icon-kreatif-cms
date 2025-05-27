@@ -44,7 +44,7 @@ export async function GET(request: Request, { params }: { params: { slug: string
       name: data.name,
       slug: data.slug,
       category: data.category,
-      price: formatPrice(data.price),
+      price: data.price,
       description: data.description || "",
       features: data.features || [],
       specifications: data.specifications || {},
