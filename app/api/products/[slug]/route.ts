@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { use } from "react";
 
 function createSlug(name: string): string {
   return name
@@ -19,9 +20,9 @@ function formatPrice(price: number): string {
   }).format(price)
 }
 
-export async function GET(request: Request, { params }: { params: { slug: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
-    const { slug } = params
+    const { slug } = use(params);
     const { data, error } = await supabase.from("products").select("*").eq("slug", slug).single()
 
     if (error) {

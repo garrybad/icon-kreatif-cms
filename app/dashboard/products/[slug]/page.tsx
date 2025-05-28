@@ -200,7 +200,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                         <Link href="/dashboard/products/list">
                             <Button variant="outline">
                                 <ArrowLeft className="h-4 w-4 mr-2" />
-                                Back to Products
+                                Kembali ke Produk
                             </Button>
                         </Link>
                     </div>
@@ -225,11 +225,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={() => handleEdit(product)}>
                             <Edit className="h-4 w-4 mr-2" />
-                            Edit Product
+                            Ubah Produk
                         </Button>
                         <Button variant="destructive" onClick={() => handleDelete(product)}>
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
+                            Hapus
                         </Button>
                     </div>
                 </div>
@@ -294,7 +294,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                                     <h2 className="text-3xl font-bold text-blue-600">{formatPrice(product.price)}</h2>
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold mb-2">Description</h3>
+                                    <h3 className="font-semibold mb-2">Deskripsi</h3>
                                     <p className="text-gray-700">{product.description || "No description available"}</p>
                                 </div>
                                 <div>
@@ -312,7 +312,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                         {product.features && product.features.length > 0 && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Features</CardTitle>
+                                    <CardTitle>Fitur</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <ul className="space-y-2">
@@ -331,7 +331,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                         {product.specifications && Object.keys(product.specifications).length > 0 && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Specifications</CardTitle>
+                                    <CardTitle>Spesifikasi</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-3">

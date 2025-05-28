@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus } from "lucide-react"
+import { X, Plus, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { v4 as uuidv4 } from "uuid"
 
 function createSlug(name: string): string {
   return name
@@ -30,19 +31,18 @@ export default function AddProductPage() {
   const [price, setPrice] = useState("")
   const [description, setDescription] = useState("")
   const [features, setFeatures] = useState<string[]>([""])
-  const [specifications, setSpecifications] = useState<{ key: string; value: string }[]>(
-    [
-      { key: "Material", value: "" },
-      { key: "Size", value: "" },
-      { key: "Printing", value: "" },
-      { key: "Finish Options", value: "" },
-      { key: "Minimum Order", value: "" },
-    ]
-  )
+  const [specifications, setSpecifications] = useState<{ key: string; value: string }[]>([
+    { key: "Bahan", value: "" },
+    { key: "Ukuran", value: "" },
+    { key: "Type Printing", value: "" },
+    { key: "Opsi Finishing", value: "" },
+    { key: "Minimal Order", value: "" },
+  ])
   const [images, setImages] = useState<File[]>([])
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number[]>([])
   const [message, setMessage] = useState("")
 
   // Add this useEffect for cleanup
@@ -122,14 +122,6 @@ export default function AddProductPage() {
     setFeatures(newFeatures)
   }
 
-  // const addSpecification = () => {
-  //   setSpecifications([...specifications, { key: "", value: "" }])
-  // }
-
-  // const removeSpecification = (index: number) => {
-  //   setSpecifications(specifications.filter((_, i) => i !== index))
-  // }
-
   const updateSpecification = (index: number, field: "key" | "value", value: string) => {
     const newSpecs = [...specifications]
     newSpecs[index][field] = value
@@ -141,6 +133,7 @@ export default function AddProductPage() {
 
     const newImages = [...images]
     const newPreviewUrls = [...imagePreviewUrls]
+    const newProgress = [...uploadProgress]
 
     // If replacing an existing image
     if (index < newImages.length) {
@@ -150,20 +143,24 @@ export default function AddProductPage() {
       }
       newImages[index] = file
       newPreviewUrls[index] = URL.createObjectURL(file)
+      newProgress[index] = 0
     } else {
       // Adding a new image
       newImages.push(file)
       newPreviewUrls.push(URL.createObjectURL(file))
+      newProgress.push(0)
     }
 
     setImages(newImages)
     setImagePreviewUrls(newPreviewUrls)
+    setUploadProgress(newProgress)
   }
 
   const removeImage = (index: number) => {
     if (images.length > 0) {
       const newImages = images.filter((_, i) => i !== index)
       const newPreviewUrls = imagePreviewUrls.filter((_, i) => i !== index)
+      const newProgress = uploadProgress.filter((_, i) => i !== index)
 
       // Revoke the URL to prevent memory leaks
       if (imagePreviewUrls[index]) {
@@ -172,6 +169,7 @@ export default function AddProductPage() {
 
       setImages(newImages)
       setImagePreviewUrls(newPreviewUrls)
+      setUploadProgress(newProgress)
     }
   }
 
@@ -206,13 +204,49 @@ export default function AddProductPage() {
     }
   }
 
+  // Function to upload a single image to Supabase Storage
+  const uploadImageToStorage = async (file: File, index: number): Promise<string> => {
+    try {
+      // Generate a unique filename to prevent collisions
+      const fileExt = file.name.split(".").pop()
+      const fileName = `${uuidv4()}.${fileExt}`
+      const filePath = `products/${slug}/${fileName}`
+
+      // Upload the file to Supabase Storage
+      const { data, error } = await supabase.storage.from("product-images").upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type,
+      })
+
+      if (error) {
+        throw error
+      }
+
+      // Get the public URL for the uploaded file
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(filePath)
+
+      // Update progress
+      const newProgress = [...uploadProgress]
+      newProgress[index] = 100
+      setUploadProgress(newProgress)
+
+      return publicUrl
+    } catch (error) {
+      console.error("Error uploading image:", error)
+      throw error
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setMessage("")
 
     // Validation
-    if (images.length < 5) {
+    if (images.length < 2) {
       setMessage("Please upload at least 5 product images.")
       setIsLoading(false)
       return
@@ -237,18 +271,15 @@ export default function AddProductPage() {
     )
 
     try {
-      // Convert images to base64 or upload to a storage service
-      // For now, we'll convert to base64 for storage in the database
-      const imagePromises = images.map((file) => {
-        return new Promise<string>((resolve) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result as string)
-          reader.readAsDataURL(file)
-        })
-      })
+      // Initialize progress array
+      const newProgress = images.map(() => 0)
+      setUploadProgress(newProgress)
 
-      const imageBase64Array = await Promise.all(imagePromises)
+      // Upload all images to Supabase Storage and get their URLs
+      const imageUploadPromises = images.map((file, index) => uploadImageToStorage(file, index))
+      const imageUrls = await Promise.all(imageUploadPromises)
 
+      // Insert the product with image URLs
       const { error } = await supabase.from("products").insert({
         name,
         slug,
@@ -257,7 +288,7 @@ export default function AddProductPage() {
         description,
         features: validFeatures,
         specifications: specsObject,
-        images: imageBase64Array,
+        images: imageUrls,
       })
 
       if (error) {
@@ -273,9 +304,16 @@ export default function AddProductPage() {
       setPrice("")
       setDescription("")
       setFeatures([""])
-      setSpecifications([{ key: "", value: "" }])
+      setSpecifications([
+        { key: "Material", value: "" },
+        { key: "Size", value: "" },
+        { key: "Printing", value: "" },
+        { key: "Finish Options", value: "" },
+        { key: "Minimum Order", value: "" },
+      ])
       setImages([])
       setImagePreviewUrls([])
+      setUploadProgress([])
     } catch (error) {
       console.error("Error adding product:", error)
       setMessage("Error adding product. Please try again.")
@@ -288,25 +326,25 @@ export default function AddProductPage() {
     <div className="px-4 py-6">
       <Card className="max-w-4xl mx-auto">
         <CardHeader>
-          <CardTitle>Add New Product</CardTitle>
-          <CardDescription>Add a new product to your Icon Kreatif catalog</CardDescription>
+          <CardTitle>Tambah Produk Baru</CardTitle>
+          <CardDescription>Tambahkan produk baru ke katalog Icon Kreatif Anda</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Product Name *</Label>
+                <Label htmlFor="name">Nama Produk *</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter product name"
+                  placeholder="Masukkan nama produk"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="slug">Slug (Auto-generated)</Label>
+                <Label htmlFor="slug">Slug (Dibuat Secara Otomatis)</Label>
                 <Input
                   id="slug"
                   value={slug}
@@ -314,15 +352,15 @@ export default function AddProductPage() {
                   placeholder="product-slug"
                   className="bg-gray-50"
                 />
-                <p className="text-sm text-gray-500">This will be used in the URL: /products/{slug}</p>
+                <p className="text-sm text-gray-500">Ini akan digunakan di URL: /products/{slug}</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
+              <Label htmlFor="category">Kategori *</Label>
               <Select value={category} onValueChange={setCategory} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
@@ -335,7 +373,7 @@ export default function AddProductPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price (IDR) *</Label>
+              <Label htmlFor="price">Harga (IDR) *</Label>
               <Input
                 id="price"
                 type="number"
@@ -349,22 +387,22 @@ export default function AddProductPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Deskripsi</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter product description"
+                placeholder="Masukkan deskripsi produk"
                 rows={4}
               />
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Features</Label>
+                <Label>Fitur</Label>
                 <Button type="button" variant="outline" size="sm" onClick={addFeature}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Feature
+                  Tambahkan Fitur
                 </Button>
               </div>
               {features.map((feature, index) => (
@@ -372,7 +410,7 @@ export default function AddProductPage() {
                   <Input
                     value={feature}
                     onChange={(e) => updateFeature(index, e.target.value)}
-                    placeholder="Enter feature"
+                    placeholder="Masukkan fitur"
                   />
                   {features.length > 1 && (
                     <Button type="button" variant="outline" size="icon" onClick={() => removeFeature(index)}>
@@ -385,42 +423,29 @@ export default function AddProductPage() {
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Specifications</Label>
-                {/* <Button type="button" variant="outline" size="sm" onClick={addSpecification}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Specification
-                </Button> */}
+                <Label>Spesifikasi</Label>
               </div>
               {specifications.map((spec, index) => (
                 <div key={index} className="flex gap-2">
-                  <Input
-                    value={spec.key}
-                    placeholder="Specification name"
-                    readOnly
-                  />
+                  <Input value={spec.key} placeholder="Specification name" readOnly />
                   <Input
                     value={spec.value}
                     onChange={(e) => updateSpecification(index, "value", e.target.value)}
                     placeholder="Specification value"
                   />
-                  {/* {specifications.length > 1 && (
-                    <Button type="button" variant="outline" size="icon" onClick={() => removeSpecification(index)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )} */}
                 </div>
               ))}
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Product Images * (minimum 5 required)</Label>
+                <Label>Gambar Produk * (minimal 2 dibutuhkan)</Label>
                 <Button type="button" variant="outline" size="sm" onClick={addImageSlot}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Image
+                  Tambahkan Gambar
                 </Button>
               </div>
-              <div className="text-sm text-gray-600">Upload high-quality images of your product</div>
+              <div className="text-sm text-gray-600">Unggah gambar produk Anda yang berkualitas tinggi</div>
 
               {/* Display uploaded images */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -432,6 +457,14 @@ export default function AddProductPage() {
                         alt={`Product ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
+                      {isLoading && uploadProgress[index] < 100 && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                          <div className="text-white text-center">
+                            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                            <span className="text-sm">Uploading...</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <Button
                       type="button"
@@ -439,6 +472,7 @@ export default function AddProductPage() {
                       size="icon"
                       className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => removeImage(index)}
+                      disabled={isLoading}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -449,7 +483,7 @@ export default function AddProductPage() {
                 ))}
 
                 {/* Show empty slots for remaining images */}
-                {Array.from({ length: Math.max(0, 5 - images.length) }).map((_, index) => (
+                {Array.from({ length: Math.max(0, 2 - images.length) }).map((_, index) => (
                   <div
                     key={`empty-${index}`}
                     className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center"
@@ -465,19 +499,20 @@ export default function AddProductPage() {
                       }}
                       className="hidden"
                       id={`image-upload-${images.length + index}`}
+                      disabled={isLoading}
                     />
                     <label
                       htmlFor={`image-upload-${images.length + index}`}
-                      className="cursor-pointer flex flex-col items-center justify-center text-gray-500 hover:text-gray-700"
+                      className={`cursor-pointer flex flex-col items-center justify-center text-gray-500 hover:text-gray-700 ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       <Plus className="h-8 w-8 mb-2" />
-                      <span className="text-sm">Upload Image</span>
+                      <span className="text-sm">Unggah Gambar</span>
                     </label>
                   </div>
                 ))}
               </div>
 
-              <div className="text-sm text-gray-500">Uploaded: {images.length}/5 minimum required</div>
+              <div className="text-sm text-gray-500">Diunggah: {images.length}/2 minimum yang diperlukan</div>
             </div>
 
             {message && (
@@ -491,7 +526,14 @@ export default function AddProductPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Adding Product..." : "Add Product"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sedang Menambahkan Produk...
+                </>
+              ) : (
+                "Tambahkan Produk"
+              )}
             </Button>
           </form>
         </CardContent>

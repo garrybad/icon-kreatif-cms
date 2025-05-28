@@ -41,36 +41,36 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white">
       <div className="container flex h-16 items-center px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-2 mr-6">
+        <div className="flex items-center gap-2 mr-6">
           <UserCog className="h-6 w-6" />
           <span className={`text-xl font-bold ${delaGothicOne.className}`}>
             ICON KREATIF CMS
           </span>
-        </Link>
+        </div>
 
         <nav className="hidden md:flex gap-6 flex-1 justify-end">
           <Link href="/dashboard">
             <Button variant="ghost" className="flex items-center">
               <Settings className="h-4 w-4 mr-2" />
-              Business Details
+              Detail Bisnis
             </Button>
           </Link>
           <Link href="/dashboard/categories">
             <Button variant="ghost" className="flex items-center">
               <Tag className="h-4 w-4 mr-2" />
-              Categories
+              Kategori
             </Button>
           </Link>
           <Link href="/dashboard/products">
             <Button variant="ghost" className="flex items-center">
               <Package className="h-4 w-4 mr-2" />
-              Add Product
+              Tambah Produk
             </Button>
           </Link>
           <Link href="/dashboard/products/list">
             <Button variant="ghost" className="flex items-center">
               <Package className="h-4 w-4 mr-2" />
-              View Products
+              List Produk
             </Button>
           </Link>
           <Button
@@ -110,28 +110,28 @@ export default function Navbar() {
                   className="text-lg font-medium hover:text-purple-600"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Business Details
+                  Detail Bisnis
                 </Link>
                 <Link
                   href="/dashboard/categories"
                   className="text-lg font-medium hover:text-purple-600"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Categories
+                  Kategori
                 </Link>
                 <Link
                   href="/dashboard/products"
                   className="text-lg font-medium hover:text-purple-600"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Add Product
+                  Tambah Produk
                 </Link>
                 <Link
                   href="/dashboard/products/list"
                   className="text-lg font-medium hover:text-purple-600"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  View Products
+                  List Produk
                 </Link>
               </nav>
               <Button onClick={handleLogout} className="gap-1 mt-4">

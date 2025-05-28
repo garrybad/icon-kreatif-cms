@@ -151,8 +151,8 @@ export default function CategoriesPage() {
     <div>
       <div className="mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Category Management</h1>
-          <p className="text-gray-600">Add, edit, and manage product categories</p>
+          <h1 className="text-2xl font-bold">Manajemen Kategori</h1>
+          <p className="text-gray-600">Tambahkan, edit, dan kelola kategori produk</p>
         </div>
 
         {message && (
@@ -178,23 +178,23 @@ export default function CategoriesPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Plus className="h-5 w-5 mr-2" />
-                  Add New Category
+                  Tambah Kategori Baru
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddCategory} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="category-name">Category Name *</Label>
+                    <Label htmlFor="category-name">Nama Kategori *</Label>
                     <Input
                       id="category-name"
                       value={newCategoryName}
                       onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="Enter category name"
+                      placeholder="Masukka nama kategori"
                       disabled={isAdding}
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isAdding || !newCategoryName.trim()}>
-                    {isAdding ? "Adding..." : "Add Category"}
+                    {isAdding ? "Menambahkan..." : "Tambah Kategori"}
                   </Button>
                 </form>
               </CardContent>
@@ -208,7 +208,7 @@ export default function CategoriesPage() {
                 <CardTitle className="flex items-center justify-between">
                   <span className="flex items-center">
                     <Tag className="h-5 w-5 mr-2" />
-                    Categories ({categories.length})
+                    Daftar Kategori ({categories.length})
                   </span>
                 </CardTitle>
               </CardHeader>

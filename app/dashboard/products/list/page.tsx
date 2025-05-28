@@ -202,13 +202,13 @@ export default function ProductListPage() {
       <div className="mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Product Management</h1>
-            <p className="text-gray-600">View, edit, and manage your products</p>
+            <h1 className="text-2xl font-bold">Manajemen Produk</h1>
+            <p className="text-gray-600">Lihat, edit, dan kelola produk Anda</p>
           </div>
           <Link href="/dashboard/products">
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Add New Product
+              Tambahkan Produk Baru
             </Button>
           </Link>
         </div>
@@ -266,7 +266,7 @@ export default function ProductListPage() {
                     <Link href={`/dashboard/products/${product.slug}`} className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">
                         <Eye className="h-4 w-4 mr-1" />
-                        View
+                        Lihat
                       </Button>
                     </Link>
                     <Button variant="outline" size="sm" onClick={() => handleEdit(product)}>

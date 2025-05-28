@@ -92,13 +92,13 @@ export default function BusinessDetailsPage() {
     <div className="px-4 py-6">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Business Details</CardTitle>
-          <CardDescription>Manage your business contact information and details</CardDescription>
+          <CardTitle>Detail Bisnis</CardTitle>
+          <CardDescription>Kelola informasi dan detail kontak bisnis Anda</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="whatsapp">WhatsApp Number</Label>
+              <Label htmlFor="whatsapp">Nomor WhatsApp</Label>
               <Input
                 id="whatsapp"
                 type="tel"
@@ -109,7 +109,7 @@ export default function BusinessDetailsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">Alamat</Label>
               <Textarea
                 id="address"
                 value={address}
@@ -141,7 +141,7 @@ export default function BusinessDetailsPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Updating..." : "Update Business Details"}
+              {isLoading ? "Updating..." : "Update Detail Bisnis"}
             </Button>
           </form>
         </CardContent>
