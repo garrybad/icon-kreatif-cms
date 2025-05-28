@@ -22,7 +22,7 @@ function formatPrice(price: number): string {
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
-    const { slug } = use(params);
+    const { slug } = await params;
     const { data, error } = await supabase.from("products").select("*").eq("slug", slug).single()
 
     if (error) {
